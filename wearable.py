@@ -3,6 +3,8 @@ import board
 import time
 import neopixel
 import sys
+import math
+import numpy as np
 
 
 # LED strip configuration:
@@ -17,58 +19,53 @@ LED_CHANNEL    = 0       # set to '1' for GPIOs 13, 19, 41, 45 or 53
 # LED_STRIP      = ws.WS2811_STRIP_GRB   # Strip type and colour ordering
 			
 
-def neo(strip, index, color, wait_ms=50):
-	"""light up one pixel."""
-	strip.setPixelColor(0, color)
-	strip.show()
-	#time.sleep(wait_ms/1000.0)		
+pixels = neopixel.NeoPixel(board.D18, 5, pixel_order=neopixel.RGB)
 
-def new():
-	pass
+palettes = {
+        "rainbow": [
+                [0.5, 0.5, 0.5],
+                [0.5, 0.5, 0.5],
+                [1, 1, 1],
+                [0, .33, .67],
+        ],
+        "warmish": [            
+                [0.5, 0.5, 0.5],
+                [0.5, 0.5, 0.5],
+                [1.0, 0.7, 0.4],
+                [0.0, 0.15, 0.2],
+        ],
+        "red": [
+                [0.8, 0.5, 0.4],
+                [0.2, 0.4, 0.2],
+                [2, 1, 1],
+                [0, .25, .25],
+        ],
+        "redblue": [
+                [0.5, 0.5, 0.5],
+                [0.5, 0.5, 0.5],
+                [1, 1, 1],
+                [0, 0.1, 0.2],
+        ]  
+}
 
-pixels = neopixel.NeoPixel(board.D18, 5)
-# pixels.fill((0, 125, 125))
-pixels[0] = (100, 100, 100)
-pixels[1] = (0, 255, 0)
-pixels.show()
+def color(t, pallet="redblue"):
+    a, b, c, d = palettes[pallet]
+    a, b, c, d = np.array(a), np.array(b), np.array(c), np.array(d)
+    c = a + b * np.cos(2 * math.pi * (c * t + d))
 
-n = 5
-r = 0
-g = 0
-b = 0
-a = 5
+    return (c * 256) % 256
+
+i = 0
 
 while True:
-	for p in range(n):
-		r += random.randint(0, a)
-		r %= 256
-		g += random.randint(0, 2*a)
-		g %= 256
-		b += random.randint(0, 3*a)
-		b %= 256
-		print(p, r, g, b)
-		pixels[p] = (r, g, b)
-	
-	time.sleep(0.1)
+	for p in range(LED_COUNT):
+                i += 1
+                t = (i * 0.001) % 1
+                
+                r, g, b = color(t)
+                
+                if (i % 100 == 0):
+                    print(t, r, g, b)
+                pixels[p] = (r, g, b)
 
-def old():
-	strip = Adafruit_NeoPixel(LED_COUNT, LED_PIN, LED_FREQ_HZ, LED_DMA, LED_INVERT, LED_BRIGHTNESS, LED_CHANNEL, LED_STRIP)
-	print('Press Ctrl-C to quit.')
-	#while True:
-	print(sys.argv)
-	
-	
-	print ('Welcome, Press Ctrl-C to quit.')
-
-	strip.begin()
-	index = sys.argv[1]
-
-	color = sys.argv[2].split(",")
-	green = int(color[0])
-	red = int(color[1])
-	blue = int(color[2])
-	#print "count: " + str(count)	
-	neo(strip, index, Color(green,red,blue))
-
-if __name__ == "__main__":
-	new()	
+	time.sleep(0.01)

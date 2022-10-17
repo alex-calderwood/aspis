@@ -1,7 +1,15 @@
+import sys
 import subprocess
 from subprocess import Popen
 import time
 import requests
+import os
+
+# Set rec / sox environment variables
+if os.environ["USER"].strip() == "pi" or os.environ["SUDO_USER"] == "pi":
+    os.environ["AUDIODEV"] = "hw:1,0"
+    os.environ["AUDIODRIVER"] = "alsa"
+    print("audio dev", os.environ["AUDIODEV"], os.environ["AUDIODRIVER"])
 
 AUDIO_FILE= "data/audio.wav"
 URL = "http://localhost:5001/transcribe"
@@ -34,4 +42,4 @@ if __name__ == "__main__":
     while True:
         record_audio(RECORD_FOR)
         transcribe(AUDIO_FILE)
-    # play_audio()
+        exit()
