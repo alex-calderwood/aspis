@@ -1,7 +1,6 @@
 import subprocess
 from subprocess import Popen
 import time
-import whisper
 import requests
 
 AUDIO_FILE= "data/audio.wav"
@@ -21,11 +20,6 @@ def record_audio(t):
 def play_audio():
     p = Popen(["play", AUDIO_FILE])
     p.wait()
-
-# def transcribe(file):
-#     model = whisper.load_model("small") # base is faster
-#     result = model.transcribe(file)
-#     print(result["text"])
 
 def transcribe(file):
     response = requests.post(URL, files={'file': open(file, 'rb')})
