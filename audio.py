@@ -5,6 +5,9 @@ import requests
 
 AUDIO_FILE= "data/audio.wav"
 URL = "http://localhost:5001/transcribe"
+# SERVER_URL = "http://73.15.249.8:5001/transcribe"
+SERVER_URL = "http://192.168.0.3:5001/transcribe"
+URL = SERVER_URL
 RECORD_FOR = 3
 
 def record_audio(t):
