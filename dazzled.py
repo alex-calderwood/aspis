@@ -59,14 +59,14 @@ class Dazzled:
         def off(self):
                 self.pixels.fill((0,0,0))
 
-        def wave(self, index, color, time=1.0, iters=20):
+        def wave(self, index, color, duration=1.0, iters=20):
                 x = 0
                 while x < math.pi:
                         alpha = math.sin(x)
                         self.pixels[index] = \
                                 (int(color[0]*alpha), int(color[1]*alpha), int(color[2]*alpha))
-                        x += math.pi / (iters * time)
-                        time.sleep(time / iters)
+                        x += math.pi / (iters * duration)
+                        time.sleep(duration / iters)
 
         def startup(self):
                 for i in range(5):

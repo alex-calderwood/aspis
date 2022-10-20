@@ -48,7 +48,7 @@ palettes = {
         ]  
 }
 
-def color(t, pallet="redblue"):
+def color(t, pallet="red"):
     a, b, c, d = palettes[pallet]
     a, b, c, d = np.array(a), np.array(b), np.array(c), np.array(d)
     c = a + b * np.cos(2 * math.pi * (c * t + d))
