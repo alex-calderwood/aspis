@@ -68,6 +68,11 @@ class Dazzled:
                         x += math.pi / (iters * duration)
                         time.sleep(duration / iters)
 
+        def waves(self, duration=1.0, iters=50):
+            for i in range(self.n):
+                color = (int(random.randint(0, 256)), int(random.randint(0, 100)), 0)
+                self.wave(i, color, duration=duration, iters=iters)
+
         def startup(self):
                 for i in range(5):
                         self.pixels[i] = (230,10,10)
@@ -96,6 +101,10 @@ class Dazzled:
                 
 
 if __name__ == "__main__":
+        d = Dazzled()
+        d.waves(duration=random.uniform(0.5, 2), iters = 40)
+        
+        exit()
         i = 0   
         while True:
                 for p in range(LED_COUNT):
