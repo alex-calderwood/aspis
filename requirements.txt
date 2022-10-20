@@ -1,1 +1,4 @@
+pyaudio
 pronouncing
+SpeechRecognition
+pydub
