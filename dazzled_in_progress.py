@@ -4,7 +4,7 @@ import math
 import numpy as np
 import os
 
-mock = True
+mock = False 
 
 if not mock: 
         import board
@@ -248,7 +248,9 @@ class Firefly:
         def do_flash(self, buffer):
                 buffer = buffer[self.index]
                 for i in range(len(buffer)):
-                        alpha =  math.exp(-i**2 / (2 * 10**2))
+                        std = 1
+                        b = 2
+                        alpha =  math.exp(-(i - b)**2 / (2 * std**2))
                         buffer[i] = alpha * np.full(3, 255)
                 
 
@@ -293,7 +295,7 @@ class Firefly:
                 
 
 if __name__ == "__main__":
-        d = Dazzled(5)
+        d = Dazzled(5, mock=False)
         print("fireflies")
         d.fly_fireflies()
 
