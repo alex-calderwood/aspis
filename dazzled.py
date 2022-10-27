@@ -195,8 +195,10 @@ class Dazzled:
                         time.sleep(duration / iters)
 
 
-        def fly_fireflies(self, duration=1.0, iters=100):
-                import threading
+        def fly_fireflies(self, duration=1.0, iters=200):
+                SYNC_THRESH = 0.07
+                sync_count = 0
+
                 fireflies = [Firefly(self, a = 0.08, b = 2) for fly in range(self.n)]
                 delay = 0.1
 
@@ -218,17 +220,18 @@ class Dazzled:
                         pixel_buffer = np.append(pixel_buffer, np.zeros((self.n, 1, 3)), axis=1)
                         
                         Firefly.COLOR = next(colors)
+                        
+                        # check for convergence
+                        sync = Firefly.synchronicity(fireflies)
+                        print(f"{sync:.3}")
+                        if sync < SYNC_THRESH:
+                            print("sync!")
+                            sync_count += 1
+                            if sync_count > iters * 3:
+                                print("Synchoronization complete")
+                                return self.fly_fireflies(duration=duration, iters=iters)
 
-                # for i in range(iters):
-                while True:
-                        for f in fireflies:
-                                # t = threading.Thread(target=self.fire_fly, args=(f.index, 1.0, 1))
-                                # t.start()
-                                f.update(fireflies)
-                        time.sleep(delay)
-                        self.pixels.fill((0, 0, 0))
 
-                
 class Firefly:
         # Simulated Fireflies The firefly algorithm synchronizes
         # agents as an emergent effect of each agent running a simple
@@ -264,15 +267,12 @@ class Firefly:
         def do_flash(self, buffer):
                 buffer = buffer[self.index]
                 for i in range(len(buffer)):
-                        std = 2
+                        std = 4
                         b = 3
+                        ## guassian glow
                         alpha =  math.exp(-(i - b)**2 / (2 * std**2))
                         buffer[i] = alpha * np.array(Firefly.COLOR)
                 
-
-                # self.dazzled.fire_fly(self.index, self.duration)
-                # self.dazzled.pixels[self.index] = Firefly.COLOR
-
         def flash(self, fireflies, buffer):
                 self.do_flash(buffer)
                 
@@ -304,14 +304,17 @@ class Firefly:
                         if other.index != self.index:
                                 new_ap = min(a * other.action_potential + B, other.thresh)
                                 other.action_potential = new_ap
-
-                avg = sum([abs(fireflies[i].action_potential - fireflies[i-1].action_potential) for i in range(1, len(fireflies))]) / (len(fireflies) - 1)
-                # print(avg)
-                # print(e, b, a, B, other.action_potential, new_ap, avg)
                 
+
+        @staticmethod
+        def synchronicity(fireflies):
+                avg = sum([abs(fireflies[i].action_potential - fireflies[i-1].action_potential) for i in range(1, len(fireflies))]) / (len(fireflies) - 1)
+                return avg
+
 
 if __name__ == "__main__":
         d = Dazzled(5, mock=False)
+        
         print("fireflies")
         d.fly_fireflies()
 
