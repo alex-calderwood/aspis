@@ -4,7 +4,7 @@ import math
 import numpy as np
 import os
 
-mock = False 
+mock = True
 
 if not mock: 
         import board
@@ -181,28 +181,10 @@ class Dazzled:
                         time.sleep(duration / iters)
 
 
-        def fly_fireflies(self, duration=1.0, iters=100):
+        def fly_fireflies(self, duration=1.0, iters=10000):
                 import threading
                 fireflies = [Firefly(self) for fly in range(self.n)]
                 delay = 0.1
-
-                pixel_buffer = np.zeros((self.n, iters, 3))
-
-
-                while True:
-                        pixels = pixel_buffer[:, 0, :]
-                        # set the pixel
-                        for i, f in enumerate(fireflies):
-                                f.update(fireflies, pixel_buffer)
-                                self.pixels[i] = (int(pixels[i, 0]), int(pixels[i, 1]), int(pixels[i, 2]))
-                                
-                        # delete the first pixel column in the buffer
-                        pixel_buffer = np.delete(pixel_buffer, 0, axis=1)
-
-                        # add a new column at the end
-                        pixel_buffer = np.append(pixel_buffer, np.zeros((self.n, 1, 3)), axis=1)
-                        
-
 
                 # for i in range(iters):
                 while True:
@@ -243,29 +225,22 @@ class Firefly:
 
                 self.duration = duration
                 self.action_potential = random.uniform(0, self.thresh)
+                # self.action_potential = self.index / 5 * self.thresh
 
 
-        def do_flash(self, buffer):
-                buffer = buffer[self.index]
-                for i in range(len(buffer)):
-                        std = 1
-                        b = 2
-                        alpha =  math.exp(-(i - b)**2 / (2 * std**2))
-                        buffer[i] = alpha * np.full(3, 255)
-                
-
+        def do_flash(self):
                 # self.dazzled.fire_fly(self.index, self.duration)
-                # self.dazzled.pixels[self.index] = Firefly.COLOR
+                self.dazzled.pixels[self.index] = Firefly.COLOR
 
-        def flash(self, fireflies, buffer):
-                self.do_flash(buffer)
+        def flash(self, fireflies):
+                self.do_flash()
                 
                 # send to other fireflies
                 self.broadcast(fireflies)
 
-        def update(self, fireflies, pixel_buffer):
+        def update(self, fireflies):
                 if self.action_potential >= self.thresh:
-                        self.flash(fireflies, pixel_buffer)
+                        self.flash(fireflies)
                         self.action_potential = 0
                         return
                 self.action_potential += self.a
@@ -282,9 +257,9 @@ class Firefly:
                 if neighbors_only:
                         others = fireflies[self.index-1:self.index+2]
                 else:
-                        others = fireflies
-
+                        others
                 for other in others:
+                # for other in fireflies:
                         if other.index != self.index:
                                 new_ap = min(a * other.action_potential + B, other.thresh)
                                 other.action_potential = new_ap
@@ -295,7 +270,7 @@ class Firefly:
                 
 
 if __name__ == "__main__":
-        d = Dazzled(5, mock=False)
+        d = Dazzled(5)
         print("fireflies")
         d.fly_fireflies()
 

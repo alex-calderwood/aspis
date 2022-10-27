@@ -4,7 +4,7 @@ import math
 import numpy as np
 import os
 
-mock = True
+mock = False 
 
 if not mock: 
         import board
@@ -32,6 +32,12 @@ palettes = {
                 [100, 100, 0],
                 [50, 150, 0],
         ],
+        "fireflies": [
+                [0, 0.3, 1],
+                [165, 234, 41],
+                [224, 212, 49],
+                [143, 72, 53],
+        ]
 }
 
 class MockPixels:
@@ -70,6 +76,9 @@ class Dazzled:
                         self.pixels = neopixel.NeoPixel(board.D18, LED_COUNT, pixel_order=neopixel.RGB)
                 self.n = LED_COUNT
 
+                if not mock:
+                    self.pixels.fill((0, 0, 0))
+
         def set_color(self, color):
                 self.pixels.fill(color)
 
@@ -85,7 +94,7 @@ class Dazzled:
                 r = np.linspace(r1, r2, steps)
                 g = np.linspace(g1, g2, steps)
                 b = np.linspace(b1, b2, steps)
-                print(f"r: {r}, g: {g}, b: {b}")
+                # print(f"r: {r}, g: {g}, b: {b}")
                 return zip(r, g, b)
 
         def gradient_fill(self, palette_name: str, iters=100, duration=1.0):
@@ -107,8 +116,6 @@ class Dazzled:
                 assert(len(colors) == len(locations))
                 n_colors = len(colors)
 
-                print(locations)
-
                 # if locations[0] != 0:
                 #         locations = [0] + locations
                 #         colors = [colors[0]] + colors
@@ -118,15 +125,22 @@ class Dazzled:
                 #         colors = colors + [colors[-1]]
                 #         n_colors += 1
                 # print('n_colors', n_colors)
-
                 for t in range(n_colors):
                         if t == n_colors - 1:
                                 break
-                        num_steps = int(locations[t + 1] - locations[t]) * count
-                        print(locations[t+1], locations[t], count, num_steps)
+                        num_steps = int((locations[t + 1] - locations[t]) * count)
+                        # print(locations, locations[t+1], locations[t], count, num_steps)
                         for c in self.interpolate(colors[t], colors[t+1], num_steps):
-                                print(c)
                                 yield c
+        
+        def slide_through_colors(self, palette="fireflies", iters=100):
+            locations = palettes[palette][0]
+            colors = palettes[palette][1:]
+            while True:
+                for c in self._linear_gradient(colors, locations, count=iters):
+                    yield c
+                for c in reversed(list(self._linear_gradient(colors, locations, count=iters))):
+                    yield c
 
 
         def wave(self, index, color, duration=1.0, iters=20):
@@ -169,7 +183,7 @@ class Dazzled:
 
                         time.sleep(0.01)
 
-        def fire_fly(self, i, duration=1.0, iters=50):
+        def fire_fly(self, i, color=(255, 255, 255), duration=1.0, iters=50):
                 """
                 A firefly effect, needs to be called in its own thread
                 """
@@ -177,14 +191,33 @@ class Dazzled:
                 # # send a guassian pulse to the pixel
                 for j in range(iters):
                         alpha = math.exp(-j**2 / (2 * 10**2)) # TODO verify this
-                        self.pixels[i] = (int(255*alpha), int(255*alpha), int(255*alpha))
+                        self.pixels[i] = (int(color[0]*alpha), int(color[1]*alpha), int(color[2]*alpha))
                         time.sleep(duration / iters)
 
 
-        def fly_fireflies(self, duration=1.0, iters=10000):
+        def fly_fireflies(self, duration=1.0, iters=100):
                 import threading
-                fireflies = [Firefly(self) for fly in range(self.n)]
+                fireflies = [Firefly(self, a = 0.08, b = 2) for fly in range(self.n)]
                 delay = 0.1
+
+                pixel_buffer = np.zeros((self.n, iters, 3))
+
+                colors = self.slide_through_colors()
+
+                while True:
+                        pixels = pixel_buffer[:, 0, :]
+                        # set the pixel
+                        for i, f in enumerate(fireflies):
+                                f.update(fireflies, pixel_buffer)
+                                self.pixels[i] = (int(pixels[i, 0]), int(pixels[i, 1]), int(pixels[i, 2]))
+                                
+                        # delete the first pixel column in the buffer
+                        pixel_buffer = np.delete(pixel_buffer, 0, axis=1)
+
+                        # add a new column at the end
+                        pixel_buffer = np.append(pixel_buffer, np.zeros((self.n, 1, 3)), axis=1)
+                        
+                        Firefly.COLOR = next(colors)
 
                 # for i in range(iters):
                 while True:
@@ -211,7 +244,10 @@ class Firefly:
 
         I = 0
         COLOR = (255, 255, 255)
-        def __init__(self, dazzled, a=.1, b=1, duration=1):
+        def __init__(self, dazzled, a=.1, b=1, thresh=20):
+                """
+                a = .1 b = 1
+                """
                 self.index = Firefly.I
                 Firefly.I += 1
 
@@ -219,28 +255,33 @@ class Firefly:
                 self.e_in = self.a
                 self.b_in = b
 
-                self.thresh = 1
+                self.thresh = thresh
 
                 self.dazzled = dazzled
 
-                self.duration = duration
                 self.action_potential = random.uniform(0, self.thresh)
-                # self.action_potential = self.index / 5 * self.thresh
 
+        def do_flash(self, buffer):
+                buffer = buffer[self.index]
+                for i in range(len(buffer)):
+                        std = 2
+                        b = 3
+                        alpha =  math.exp(-(i - b)**2 / (2 * std**2))
+                        buffer[i] = alpha * np.array(Firefly.COLOR)
+                
 
-        def do_flash(self):
                 # self.dazzled.fire_fly(self.index, self.duration)
-                self.dazzled.pixels[self.index] = Firefly.COLOR
+                # self.dazzled.pixels[self.index] = Firefly.COLOR
 
-        def flash(self, fireflies):
-                self.do_flash()
+        def flash(self, fireflies, buffer):
+                self.do_flash(buffer)
                 
                 # send to other fireflies
                 self.broadcast(fireflies)
 
-        def update(self, fireflies):
+        def update(self, fireflies, pixel_buffer):
                 if self.action_potential >= self.thresh:
-                        self.flash(fireflies)
+                        self.flash(fireflies, pixel_buffer)
                         self.action_potential = 0
                         return
                 self.action_potential += self.a
@@ -257,9 +298,9 @@ class Firefly:
                 if neighbors_only:
                         others = fireflies[self.index-1:self.index+2]
                 else:
-                        others
+                        others = fireflies
+
                 for other in others:
-                # for other in fireflies:
                         if other.index != self.index:
                                 new_ap = min(a * other.action_potential + B, other.thresh)
                                 other.action_potential = new_ap
@@ -270,7 +311,7 @@ class Firefly:
                 
 
 if __name__ == "__main__":
-        d = Dazzled(5)
+        d = Dazzled(5, mock=False)
         print("fireflies")
         d.fly_fireflies()
 
